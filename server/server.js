@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import healthRoutes from './routes/healthRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 import connectDB from './config/db.js';
 
 dotenv.config();
@@ -20,6 +21,7 @@ connectDB();
 
 // Routes
 app.use('/api/health', healthRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

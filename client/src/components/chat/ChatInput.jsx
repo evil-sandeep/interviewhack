@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import MicButton from './MicButton';
 import useSpeechRecognition from '../../hooks/useSpeechRecognition';
+import { useAppContext } from '../../context/AppContext';
+import { sendChatMessage } from '../../services/api';
 
 const ChatInput = () => {
   const [text, setText] = useState("");
-  const [baseText, setBaseText] = useState(""); // Stores text snapshot prior to listening
+  const [baseText, setBaseText] = useState("");
+
+  const { setMessages, setIsTyping, isTyping } = useAppContext();
 
   const {
     isListening,
@@ -19,19 +23,19 @@ const ChatInput = () => {
     if (isListening) {
       stopListening();
     } else {
-      setBaseText(text); // Snapshot exactly what's currently in the box
+      setBaseText(text); 
       startListening();
     }
   };
 
-  // Live Append: when the hook updates the transcript, merge it into our base text live
+  // Live Append: merge live transcript into baseText
   useEffect(() => {
     if (isListening) {
       setText(baseText + (baseText && transcript ? " " : "") + transcript);
     }
   }, [transcript, isListening, baseText]);
 
-  // Cleanup/Finalize: when we stop listening natively (silence timeout) or manually
+  // Cleanup: when listening stops, our text becomes the new base
   useEffect(() => {
     if (!isListening) {
       setBaseText(text); 
@@ -45,8 +49,41 @@ const ChatInput = () => {
     }
   };
 
+  const handleSend = async () => {
+    const userMessage = text.trim();
+    if (!userMessage || isTyping) return;
+
+    if (isListening) stopListening();
+
+    // Clear input
+    setText("");
+    setBaseText("");
+    
+    // 1. Add user message to UI
+    setMessages((prev) => [...prev, { sender: 'user', text: userMessage }]);
+    
+    // 2. Show loading indicator
+    setIsTyping(true);
+
+    try {
+      // 3. Call backend API
+      const data = await sendChatMessage(userMessage);
+
+      // 4. Display AI response
+      setMessages((prev) => [...prev, { sender: 'ai', text: data.reply }]);
+    } catch (err) {
+      console.error(err);
+      setMessages((prev) => [...prev, { 
+        sender: 'ai', 
+        text: `⚠️ Network Error: ${err.message}` 
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   const parseErrorMessage = () => {
-    if (error === 'browser-not-supported') return 'Browser lacks Speech Recognition Support';
+    if (error === 'browser-not-supported') return 'Speech API not supported';
     if (error === 'not-allowed') return 'Microphone Permission Denied';
     if (error === 'no-speech') return 'No speech detected';
     return error;
@@ -69,7 +106,7 @@ const ChatInput = () => {
         <MicButton 
           isListening={isListening} 
           onClick={toggleRecording} 
-          disabled={!hasBrowserSupport} 
+          disabled={!hasBrowserSupport || isTyping} 
         />
 
         {/* Text Input */}
@@ -77,7 +114,13 @@ const ChatInput = () => {
           type="text"
           value={text}
           onChange={handleTextChange}
-          readOnly={isListening} // lock editing to prevent jumbled interim text
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          readOnly={isListening || isTyping} 
           placeholder={
             !hasBrowserSupport 
               ? "Speech API not supported..." 
@@ -92,9 +135,13 @@ const ChatInput = () => {
 
         {/* Send Button */}
         <button 
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 transition-colors"
+          onClick={handleSend}
+          disabled={!text.trim() || isTyping}
+          className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+            text.trim() && !isTyping ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.5)]' : 'bg-white/5 text-slate-500 cursor-not-allowed'
+          }`}
         >
-          <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-5 h-5 ml-1 transition-transform ${isTyping ? 'translate-x-1 opacity-50' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
           </svg>
         </button>

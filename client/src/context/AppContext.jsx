@@ -5,13 +5,16 @@ const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
   return (
     <AppContext.Provider value={{
       messages,
       setMessages,
       isRecording,
-      setIsRecording
+      setIsRecording,
+      isTyping,
+      setIsTyping
     }}>
       {children}
     </AppContext.Provider>
