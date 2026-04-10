@@ -1,42 +1,93 @@
-import React, { useState } from 'react';
-import { useAppContext } from '../../context/AppContext';
+import React, { useState, useEffect } from 'react';
+import MicButton from './MicButton';
+import useSpeechRecognition from '../../hooks/useSpeechRecognition';
 
 const ChatInput = () => {
-  const { isRecording, setIsRecording } = useAppContext();
   const [text, setText] = useState("");
+  const [baseText, setBaseText] = useState(""); // Stores text snapshot prior to listening
+
+  const {
+    isListening,
+    transcript,
+    startListening,
+    stopListening,
+    hasBrowserSupport,
+    error
+  } = useSpeechRecognition();
 
   const toggleRecording = () => {
-    setIsRecording(!isRecording);
+    if (isListening) {
+      stopListening();
+    } else {
+      setBaseText(text); // Snapshot exactly what's currently in the box
+      startListening();
+    }
+  };
+
+  // Live Append: when the hook updates the transcript, merge it into our base text live
+  useEffect(() => {
+    if (isListening) {
+      setText(baseText + (baseText && transcript ? " " : "") + transcript);
+    }
+  }, [transcript, isListening, baseText]);
+
+  // Cleanup/Finalize: when we stop listening natively (silence timeout) or manually
+  useEffect(() => {
+    if (!isListening) {
+      setBaseText(text); 
+    }
+  }, [isListening, text]);
+
+  const handleTextChange = (e) => {
+    setText(e.target.value);
+    if (!isListening) {
+      setBaseText(e.target.value);
+    }
+  };
+
+  const parseErrorMessage = () => {
+    if (error === 'browser-not-supported') return 'Browser lacks Speech Recognition Support';
+    if (error === 'not-allowed') return 'Microphone Permission Denied';
+    if (error === 'no-speech') return 'No speech detected';
+    return error;
   };
 
   return (
-    <div className="w-full mt-auto pt-6 pb-2">
-      <div className="relative flex items-center gap-3 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-full px-2 py-2 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+    <div className="w-full mt-auto pt-6 pb-2 relative">
+      
+      {/* Error Output Indicator */}
+      {error && error !== 'no-speech' && (
+        <div className="absolute -top-12 left-2 text-red-400 text-xs px-4 py-2 bg-red-950/70 rounded-full border border-red-500/30 flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          {parseErrorMessage()}
+        </div>
+      )}
+
+      <div className="relative flex items-center gap-3 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-full px-2 py-2 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] transition-all">
         
-        {/* Mic Button */}
-        <button 
-          onClick={toggleRecording}
-          className={`relative flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
-            isRecording 
-              ? 'bg-red-500/20 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)] animate-pulse' 
-              : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30'
-          }`}
-        >
-          {isRecording && (
-            <span className="absolute inset-0 rounded-full border-2 border-red-500/50 animate-ping"></span>
-          )}
-          <svg className="w-6 h-6 z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-          </svg>
-        </button>
+        {/* Extracted Mic Component */}
+        <MicButton 
+          isListening={isListening} 
+          onClick={toggleRecording} 
+          disabled={!hasBrowserSupport} 
+        />
 
         {/* Text Input */}
         <input 
           type="text"
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={isRecording ? "Listening..." : "Type your message here..."}
-          className="flex-1 bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 px-4 py-2"
+          onChange={handleTextChange}
+          readOnly={isListening} // lock editing to prevent jumbled interim text
+          placeholder={
+            !hasBrowserSupport 
+              ? "Speech API not supported..." 
+              : isListening 
+                ? "Listening... (auto-stops on silence)" 
+                : "Type your message here..."
+          }
+          className={`flex-1 bg-transparent border-none outline-none placeholder-slate-500 px-4 py-2 transition-colors ${
+            isListening ? 'text-violet-300' : 'text-slate-200'
+          }`}
         />
 
         {/* Send Button */}
