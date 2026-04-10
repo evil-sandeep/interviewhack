@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import healthRoutes from './routes/healthRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import connectDB from './config/db.js';
 
 dotenv.config();
@@ -22,6 +23,7 @@ connectDB();
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/chat', chatRoutes); // Replaced ephemeral AI routes with standard Chat Memory paths
+app.use('/api/auth', authRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
