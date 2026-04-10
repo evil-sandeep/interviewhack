@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import healthRoutes from './routes/healthRoutes.js';
-import aiRoutes from './routes/aiRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 import connectDB from './config/db.js';
 
 dotenv.config();
@@ -21,7 +21,7 @@ connectDB();
 
 // Routes
 app.use('/api/health', healthRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/chat', chatRoutes); // Replaced ephemeral AI routes with standard Chat Memory paths
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

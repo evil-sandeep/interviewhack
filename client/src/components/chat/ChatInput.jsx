@@ -11,7 +11,6 @@ const ChatInput = () => {
 
   const { messages, setMessages, setIsTyping, isTyping, isVoiceEnabled } = useAppContext();
   
-  // Bring in the Speech Output
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
 
   const {
@@ -27,7 +26,7 @@ const ChatInput = () => {
     if (isListening) {
       stopListening();
     } else {
-      stopSpeaking(); // Interrupt AI if it was talking
+      stopSpeaking(); 
       setBaseText(text); 
       startListening();
     }
@@ -57,20 +56,24 @@ const ChatInput = () => {
     if (!userMessage || isTyping) return;
 
     if (isListening) stopListening();
-    stopSpeaking(); // Immediately cut off any ongoing AI rambling
+    stopSpeaking();
 
     setText("");
     setBaseText("");
     
-    setMessages((prev) => [...prev, { sender: 'user', text: userMessage }]);
+    // Instantly show user message with a local timestamp
+    const submitTime = new Date().toISOString();
+    setMessages((prev) => [...prev, { sender: 'user', text: userMessage, timestamp: submitTime }]);
     setIsTyping(true);
 
     try {
       const data = await sendChatMessage(userMessage);
 
-      setMessages((prev) => [...prev, { sender: 'ai', text: data.reply }]);
+      // Append AI response with a rough response timestamp 
+      // (Actual DB logic generates strict ISO timestamps behind the scenes)
+      const replyTime = new Date().toISOString();
+      setMessages((prev) => [...prev, { sender: 'ai', text: data.reply, timestamp: replyTime }]);
       
-      // Attempt to voice the response!
       if (isVoiceEnabled) {
         speak(data.reply);
       }

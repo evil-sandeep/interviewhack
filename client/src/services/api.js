@@ -7,23 +7,37 @@ const api = axios.create({
   }
 });
 
-// Response interceptor for generic error handling could be added here
-
+// Appends message to DB, gets context-aware AI response back
 export const sendChatMessage = async (message) => {
   try {
-    const response = await api.post('/ai/chat', { message });
+    const response = await api.post('/chat/message', { message });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      // The request was made and the server responded with a status code outside of 2xx
-      throw new Error(error.response.data.error || 'Server error occurred');
-    } else if (error.request) {
-      // The request was made but no response was received
-      throw new Error('No response from the server. Please check your connection.');
-    } else {
-      // Something happened in setting up the request
-      throw new Error(error.message);
-    }
+    if (error.response) throw new Error(error.response.data.error || 'Server error occurred');
+    else if (error.request) throw new Error('No response from the server. Check your connection.');
+    else throw new Error(error.message);
+  }
+};
+
+// Mounts initial session with existing history
+export const getChatHistory = async () => {
+  try {
+    const response = await api.get('/chat/history');
+    return response.data; 
+  } catch (error) {
+    console.error("Failed to fetch history:", error);
+    return { messages: [] };
+  }
+};
+
+// Hard wipes the user's conversational memory footprint
+export const clearChatHistory = async () => {
+  try {
+    const response = await api.delete('/chat/clear');
+    return response.data;
+  } catch (error) {
+    console.error("Failed to clear history:", error);
+    throw error;
   }
 };
 

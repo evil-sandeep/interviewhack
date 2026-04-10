@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppContext } from '../../context/AppContext';
 
 const Header = () => {
-  const { isVoiceEnabled, setIsVoiceEnabled } = useAppContext();
+  const { isVoiceEnabled, setIsVoiceEnabled, clearChat, messages } = useAppContext();
 
   return (
     <header className="bg-slate-900/50 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
@@ -17,7 +17,23 @@ const Header = () => {
           AI Voice Assistant
         </h1>
       </div>
-      <div>
+      <div className="flex gap-3">
+        {/* Trash/Clear Memory Button */}
+        <button 
+          onClick={clearChat}
+          disabled={messages.length === 0}
+          title="Clear Chat History"
+          className={`relative p-2 rounded-full transition-all duration-300 flex items-center justify-center ${
+            messages.length > 0
+              ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20 ring-1 ring-red-500/30' 
+              : 'text-slate-600 bg-slate-800 ring-1 ring-white/5 cursor-not-allowed opacity-50'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+
         <button 
           onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
           title={isVoiceEnabled ? "Mute Bot Responses" : "Unmute Bot Responses"}
@@ -28,13 +44,13 @@ const Header = () => {
           }`}
         >
           {isVoiceEnabled ? (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
             </svg>
           ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
             </svg>
           )}
         </button>
