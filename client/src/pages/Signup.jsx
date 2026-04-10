@@ -31,12 +31,12 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden transition-colors">
       
       {/* Background ambient lighting */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center opacity-30 pointer-events-none blur-[100px]">
-         <div className="w-[400px] h-[400px] bg-fuchsia-600 rounded-full mix-blend-screen"></div>
-         <div className="w-[400px] h-[400px] bg-violet-600 rounded-full mix-blend-screen -ml-32"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center opacity-10 dark:opacity-30 pointer-events-none blur-[100px]">
+         <div className="w-[400px] h-[400px] bg-fuchsia-600 rounded-full mix-blend-multiply dark:mix-blend-screen"></div>
+         <div className="w-[400px] h-[400px] bg-violet-600 rounded-full mix-blend-multiply dark:mix-blend-screen -ml-32"></div>
       </div>
 
       <div className="w-full max-w-md relative z-10">
