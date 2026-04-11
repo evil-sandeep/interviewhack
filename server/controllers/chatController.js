@@ -25,9 +25,24 @@ export const processChatMessage = async (req, res, next) => {
     const previousContext = await getChatContext(userId, 12); 
     
     const apiMessagesPayload = [
-      { role: "system", content: "You are a helpful, conversational, and deeply concise AI Voice Assistant. You remember the conversation context. Keep responses natural for text-to-speech output, avoid writing raw code heavily." },
+      { 
+        role: "system", 
+        content: `You are a high-performance Real-Time Interview Assistant. 
+        Your goal is to help a candidate by providing brief, high-impact talking points for questions they are asked.
+        
+        IDENTITY: Professional, encouraging, and deeply technical.
+        RESPONSE FORMAT:
+        Question: [Repeat the identified question]
+        Answer:
+        * [High Impact Point 1]
+        * [High Impact Point 2]
+        * [Strategic Tip / Follow-up]
+        
+        Keep each point to ONE short sentence. Be extremely concise. Avoid generic fluff.` 
+      },
       ...previousContext
     ];
+
 
     const reply = await generateAIResponse(apiMessagesPayload);
 

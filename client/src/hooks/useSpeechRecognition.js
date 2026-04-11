@@ -18,9 +18,8 @@ const useSpeechRecognition = () => {
 
     const recognition = new SpeechRecognition();
     
-    // continuous = false enables the native silence timeout
-    // to automatically stop listening when the user stops speaking.
-    recognition.continuous = false;
+    // continuous = true keeps the mic active indefinitely
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
@@ -38,15 +37,43 @@ const useSpeechRecognition = () => {
     recognition.onend = () => {
       // Fires when stopped manually or silence timeout is reached
       setIsListening(false);
+      
+      // Auto-restart if it wasn't a manual stop to ensure "Always Listening"
+      if (recognitionRef.current && isListening) {
+        try {
+          recognitionRef.current.start();
+        } catch (err) {
+          console.error("Auto-restart failed", err);
+        }
+      }
     };
 
     recognition.onresult = (event) => {
       let currentTranscript = '';
+      let isFinalResult = false;
+      
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         currentTranscript += event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          isFinalResult = true;
+        }
       }
+      
       setTranscript(currentTranscript);
+
+      // Simple Question Detection: Check if final segment looks like a question
+      if (isFinalResult) {
+        const lowerText = currentTranscript.toLowerCase().trim();
+        const questionWords = ['what', 'who', 'where', 'when', 'why', 'how', 'can', 'could', 'should', 'would', 'is', 'are', 'do', 'does', 'tell me', 'explain'];
+        const isQuestion = lowerText.endsWith('?') || questionWords.some(word => lowerText.startsWith(word));
+        
+        if (isQuestion && lowerText.length > 10) {
+          // You could trigger a callback here if passed to the hook
+          console.log("Detected Question:", currentTranscript);
+        }
+      }
     };
+
 
     recognitionRef.current = recognition;
 

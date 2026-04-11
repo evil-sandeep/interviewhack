@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 const ChatMessage = ({ msg }) => {
-  const isUser = msg.sender === 'user';
-  const [copied, setCopied] = useState(false);
+  const isQuestion = msg.sender === 'user';
   
   const formatTime = (ts) => {
     if (!ts) return "";
@@ -11,40 +10,59 @@ const ChatMessage = ({ msg }) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(msg.text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000); // Visual UX feedback reset
-  };
-  
-  return (
-    <div className={`flex flex-col group ${isUser ? 'items-end' : 'items-start'} mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-      <div className={`relative max-w-[85%] rounded-2xl px-5 py-3 shadow-lg whitespace-pre-wrap leading-relaxed transition-all ${
-        isUser 
-          ? 'bg-violet-600 text-white rounded-br-sm shadow-violet-500/20' 
-          : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-bl-sm'
-      }`}>
-        {msg.text}
-        
-        {/* Hover Action: Copy To Clipboard */}
-        <button 
-          onClick={copyToClipboard}
-          className={`absolute ${isUser ? '-left-12' : '-right-12'} top-1/2 -translate-y-1/2 p-2 rounded-full bg-white dark:bg-slate-800 shadow shadow-black/10 transition-all opacity-0 group-hover:opacity-100 
-            ${copied ? 'text-emerald-500 scale-110' : 'text-slate-400 hover:text-violet-500'}
-          `}
-          title={copied ? "Copied!" : "Copy message"}
-        >
-          {copied ? (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-          ) : (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-          )}
-        </button>
+  /**
+   * Explodes raw strings natively into heavily formatted arrays mimicking the 
+   * extremely specific bullet-point lists featured in the screenshot constraint.
+   */
+  const renderFormattedText = (text) => {
+    if (isQuestion) return text; // Renders unstyled directly into the header block
 
-      </div>
+    // Parse AI multi-line output explicitly into separate bulleted structures
+    const blocks = text.split('\n').filter(b => b.trim() !== '');
+    return (
+      <ul className="space-y-3 mt-2 pr-4 ml-1">
+        {blocks.map((block, i) => {
+           // Strip any markdown leading lists characters
+           const cleanBlock = block.replace(/^[-*]\s*/, '');
+           return (
+             <li key={i} className="flex relative pl-5 tracking-wide">
+               <span className="absolute left-0 top-2.5 w-[5px] h-[5px] bg-zinc-400 rounded-full"></span>
+               <span className="text-[14.5px] leading-relaxed text-zinc-200 font-medium">{cleanBlock}</span>
+             </li>
+           )
+        })}
+      </ul>
+    );
+  };
+
+  return (
+    <div className="mb-8 animate-in fade-in slide-in-from-bottom-2 duration-300 relative group flex flex-col">
       
+      {isQuestion ? (
+        // Question Structure Model
+        <h2 className="text-white flex gap-2.5 items-start">
+           <span className="text-lg leading-none shrink-0 pt-0.5" role="img" aria-label="question">💬</span>
+           <div className="tracking-wide">
+             <span className="font-bold text-[15.5px] mr-1.5">Question:</span> 
+             <span className="font-semibold text-[15.5px] text-zinc-100">{renderFormattedText(msg.text)}</span>
+           </div>
+        </h2>
+      ) : (
+        // Answer Structure Model
+        <div className="mt-4 flex flex-col">
+          <h3 className="text-amber-400 font-bold text-[15.5px] flex items-center gap-2.5 tracking-wide">
+             <span className="text-[17px] leading-none text-yellow-500 shadow-yellow-500/20 drop-shadow-md">⭐</span> 
+             Answer:
+          </h3>
+          <div className="pl-[29px]">
+             {renderFormattedText(msg.text)}
+          </div>
+        </div>
+      )}
+
+      {/* Subtle Timestamp aligned properly */}
       {msg.timestamp && (
-        <span className={`text-[10px] mt-1 opacity-60 dark:opacity-40 px-1 font-medium select-none ${isUser ? 'text-violet-600 dark:text-violet-200' : 'text-slate-500 dark:text-slate-400'}`}>
+        <span className="block text-[11px] mt-4 ml-[29px] opacity-20 group-hover:opacity-50 transition-opacity text-zinc-400">
           {formatTime(msg.timestamp)}
         </span>
       )}
@@ -52,5 +70,4 @@ const ChatMessage = ({ msg }) => {
   );
 };
 
-// Optimization: React Memo caches the bubble strictly unless its particular Prop object updates natively! Stops lagging.
 export default React.memo(ChatMessage);
