@@ -1,7 +1,14 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, session } = require('electron');
 const path = require('path');
 
+// Fix for Microphone "Network" Error in Electron
+// These flags help Electron use system-native speech components
+app.commandLine.appendSwitch('enable-speech-dispatcher');
+app.commandLine.appendSwitch('no-sandbox');
+app.commandLine.appendSwitch('enable-features', 'WebSpeechAPI');
+
 let mainWindow;
+
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -14,12 +21,20 @@ function createWindow() {
     resizable: true,
     movable: true,
     webPreferences: {
-
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
+
+  // Grant microphone permission explicitly
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    if (permission === 'media') {
+      return callback(true);
+    }
+    callback(false);
+  });
+
 
   // In development, load from Vite dev server
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;

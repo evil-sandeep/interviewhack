@@ -8,9 +8,17 @@ import { useAppContext } from './context/AppContext';
 
 function App() {
   const { messages, setMessages, setIsTyping, isTyping } = useAppContext();
-  const { transcript, isListening, stopListening, startListening } = useSpeechRecognition();
+  const { transcript, isListening, stopListening, startListening, error: speechError } = useSpeechRecognition();
   const [inputValue, setInputValue] = useState('');
   const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
+
+
+  // LIVE SYNC: Map transcript to input value while recording
+  useEffect(() => {
+    if (isListening && transcript) {
+      setInputValue(transcript);
+    }
+  }, [transcript, isListening]);
 
   // Function to handle sending messages
   const handleSendMessage = useCallback(async (text) => {
@@ -37,33 +45,35 @@ function App() {
       alert(`Connection Error: ${err.message}. Please ensure the server is running.`);
     } finally {
       setIsTyping(false);
-
       // Optional: Resume listening after response if it was active
       if (wasListening) startListening();
+      setInputValue(''); // Always clear input after send
+      setLastProcessedTranscript(''); // Reset processed track
     }
   }, [setMessages, setIsTyping, isListening, stopListening, startListening]);
 
-  // Effect to watch transcript for question patterns
+  // AUTO-SEND EFFECT: Watch the input value during listening
   useEffect(() => {
-    if (!isListening || !transcript || isTyping) return;
+    if (!isListening || !inputValue || isTyping) return;
     
-    const text = transcript.trim();
-    if (text.toLowerCase() === lastProcessedTranscript.toLowerCase()) return;
+    const text = inputValue.trim();
+    if (text === lastProcessedTranscript) return;
 
     // Detection logic: Look for question words and substantial length
     const questionWords = ['what', 'who', 'where', 'when', 'why', 'how', 'can', 'could', 'should', 'would', 'is', 'are', 'do', 'does', 'tell me', 'explain', 'can you'];
     const lowerText = text.toLowerCase();
     const isQuestion = lowerText.endsWith('?') || questionWords.some(word => lowerText.startsWith(word));
 
-    // Wait for a clear pause after a substantial question is detected
-    if (isQuestion && text.length > 12) {
+    // Wait for a clear pause after a substantial question is in the input
+    if (isQuestion && text.length > 10) {
        const timeoutId = setTimeout(() => {
           handleSendMessage(text);
           setLastProcessedTranscript(text);
-       }, 1800); // 1.8s pause for better natural speech flow
+       }, 1700); // Natural silence pause
        return () => clearTimeout(timeoutId);
     }
-  }, [transcript, isListening, handleSendMessage, lastProcessedTranscript, isTyping]);
+  }, [inputValue, isListening, handleSendMessage, lastProcessedTranscript, isTyping]);
+
 
 
   const onManualSend = (e) => {
@@ -95,8 +105,18 @@ function App() {
         style={{ WebkitAppRegion: 'no-drag' }}
       >
         <MessagesComp />
+
+        {/* Speech Error Notice */}
+        {speechError && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-amber-500/20 border border-amber-500/40 rounded-lg backdrop-blur-md animate-bounce">
+             <p className="text-[10px] font-bold text-amber-200 uppercase tracking-tighter">
+                Mic Issue: {speechError === 'not-allowed' ? 'Permission Denied' : speechError}
+             </p>
+          </div>
+        )}
         
         {/* Real-time transcript preview */}
+
         {isListening && transcript && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-red-500/10 backdrop-blur-2xl border border-red-500/20 rounded-2xl max-w-[85%] animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300 shadow-[0_0_20px_rgba(239,68,68,0.1)] pointer-events-none">
              <div className="flex items-center gap-2">

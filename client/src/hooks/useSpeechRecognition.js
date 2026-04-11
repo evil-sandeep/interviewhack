@@ -6,6 +6,7 @@ const useSpeechRecognition = () => {
   const [error, setError] = useState(null);
   
   const recognitionRef = useRef(null);
+  const shouldBeListening = useRef(false); // Heartbeat ref to track intended state
 
   useEffect(() => {
     // Check for browser support
@@ -17,8 +18,6 @@ const useSpeechRecognition = () => {
     }
 
     const recognition = new SpeechRecognition();
-    
-    // continuous = true keeps the mic active indefinitely
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
@@ -30,54 +29,38 @@ const useSpeechRecognition = () => {
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      setError(event.error); // 'not-allowed', 'no-speech', etc.
-      setIsListening(false);
+      if (event.error !== 'no-speech') {
+        setError(event.error);
+        setIsListening(false);
+      }
     };
 
     recognition.onend = () => {
-      // Fires when stopped manually or silence timeout is reached
-      setIsListening(false);
-      
-      // Auto-restart if it wasn't a manual stop to ensure "Always Listening"
-      if (recognitionRef.current && isListening) {
+      // If we intended to be listening, restart the engine immediately
+      if (shouldBeListening.current) {
         try {
-          recognitionRef.current.start();
+          recognition.start();
         } catch (err) {
-          console.error("Auto-restart failed", err);
+          console.error("Heartbeat restart failed:", err);
+          setIsListening(false);
         }
+      } else {
+        setIsListening(false);
       }
     };
 
     recognition.onresult = (event) => {
       let currentTranscript = '';
-      let isFinalResult = false;
-      
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
+      for (let i = 0; i < event.results.length; ++i) {
         currentTranscript += event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          isFinalResult = true;
-        }
       }
-      
       setTranscript(currentTranscript);
-
-      // Simple Question Detection: Check if final segment looks like a question
-      if (isFinalResult) {
-        const lowerText = currentTranscript.toLowerCase().trim();
-        const questionWords = ['what', 'who', 'where', 'when', 'why', 'how', 'can', 'could', 'should', 'would', 'is', 'are', 'do', 'does', 'tell me', 'explain'];
-        const isQuestion = lowerText.endsWith('?') || questionWords.some(word => lowerText.startsWith(word));
-        
-        if (isQuestion && lowerText.length > 10) {
-          // You could trigger a callback here if passed to the hook
-          console.log("Detected Question:", currentTranscript);
-        }
-      }
     };
-
 
     recognitionRef.current = recognition;
 
     return () => {
+      shouldBeListening.current = false;
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -85,21 +68,32 @@ const useSpeechRecognition = () => {
   }, []);
 
   const startListening = useCallback(() => {
-    if (recognitionRef.current && !isListening) {
-      setTranscript(''); // Clear old transcript from the hook state
-      try {
-        recognitionRef.current.start();
-      } catch (err) {
-        console.error("Already started", err);
-      }
+    if (recognitionRef.current) {
+      shouldBeListening.current = true;
+      setTranscript('');
+      
+      // Small delay to ensure Electron permission handshake is stable
+      setTimeout(() => {
+        try {
+          if (shouldBeListening.current) {
+            recognitionRef.current.start();
+          }
+        } catch (err) {
+          console.error("Start failed or already running:", err);
+        }
+      }, 300);
     }
-  }, [isListening]);
+  }, []);
+
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current && isListening) {
+    shouldBeListening.current = false;
+    if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-  }, [isListening]);
+    setIsListening(false);
+  }, []);
+
 
   return {
     isListening,
