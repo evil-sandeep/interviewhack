@@ -1,19 +1,19 @@
 {
   "name": "interviewhack",
   "version": "1.0.0",
-  "description": "A full-stack, production-ready AI Voice Assistant built with the MERN stack. This application allows users to interact with an AI naturally through real-time voice-to-text recognition and text-to-speech synthesis, all backed by a persistent MongoDB conversational memory.",
-  "main": "index.js",
+  "description": "Desktop Interview Assistant Foundation",
+  "main": "electron/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "client:dev": "npm run dev --prefix client",
+    "electron:dev": "concurrently \"npm run client:dev\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
+    "start": "npm run electron:dev"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/evil-sandeep/interviewhack.git"
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.3.3",
+    "wait-on": "^7.2.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/evil-sandeep/interviewhack/issues"
   },
