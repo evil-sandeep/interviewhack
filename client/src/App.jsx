@@ -72,9 +72,14 @@ function App() {
     setInputValue('');
   };
 
+  const handleMicToggle = () => {
+    if (isListening) stopListening();
+    else startListening();
+  };
+
   return (
     <div 
-      className="flex flex-col h-screen text-white bg-[#0f1012]/85 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden select-none shadow-[0_30px_60px_rgba(0,0,0,0.8)]"
+      className={`flex flex-col h-screen text-white bg-[#0f1012]/85 backdrop-blur-2xl border-2 rounded-2xl overflow-hidden select-none shadow-[0_30px_60px_rgba(0,0,0,0.8)] transition-all duration-500 ${isListening ? 'border-red-500/50 ring-4 ring-red-500/10' : 'border-white/10'}`}
       style={{ WebkitAppRegion: 'drag' }}
     >
       
@@ -93,10 +98,13 @@ function App() {
         
         {/* Real-time transcript preview */}
         {isListening && transcript && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full max-w-[80%] animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300 pointer-events-none">
-             <p className="text-[11px] font-medium text-zinc-300 italic truncate italic">
-               "{transcript}"
-             </p>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-red-500/10 backdrop-blur-2xl border border-red-500/20 rounded-2xl max-w-[85%] animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300 shadow-[0_0_20px_rgba(239,68,68,0.1)] pointer-events-none">
+             <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
+                <p className="text-[12px] font-semibold text-red-200 italic truncate italic">
+                  "{transcript}"
+                </p>
+             </div>
           </div>
         )}
       </main>
@@ -106,27 +114,40 @@ function App() {
         className="p-4 bg-[#1e1f22]/80 border-t border-white/5 backdrop-blur-md"
         style={{ WebkitAppRegion: 'no-drag' }}
       >
-        <form onSubmit={onManualSend} className="relative group">
-          <input 
-            type="text" 
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type payload override..." 
-            className="w-full bg-black/40 border border-white/5 rounded-xl pl-4 pr-12 py-3 text-[13px] text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 transition-all duration-300 shadow-inner group-hover:bg-black/50"
-          />
+        <div className="flex items-center gap-3">
+          {/* Main Action Mic Button */}
           <button 
-            type="submit"
-            className="absolute right-2 top-2 p-1.5 text-zinc-500 hover:text-blue-400 transition-all active:scale-90 bg-white/5 rounded-lg hover:bg-white/10"
+            onClick={handleMicToggle}
+            className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg ${isListening ? 'bg-red-500 text-white animate-pulse shadow-red-500/20' : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white border border-white/5'}`}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
           </button>
-        </form>
+
+          <form onSubmit={onManualSend} className="relative flex-1 group">
+            <input 
+              type="text" 
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Ask a question or type override..." 
+              className="w-full bg-black/40 border border-white/5 rounded-xl pl-4 pr-12 py-3 text-[13px] text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 transition-all duration-300 shadow-inner group-hover:bg-black/50"
+            />
+            <button 
+              type="submit"
+              className="absolute right-2 top-2 p-1.5 text-zinc-500 hover:text-blue-400 transition-all active:scale-90 bg-white/5 rounded-lg hover:bg-white/10"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </form>
+        </div>
       </footer>
     </div>
   );
 }
+
 
 
 export default App;

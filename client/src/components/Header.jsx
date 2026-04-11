@@ -13,7 +13,6 @@ const Header = () => {
     <div 
       className="flex items-center justify-between px-3 py-2 bg-[#1e1f22]/90 border-b border-white/5 select-none"
     >
-
       {/* Brand Profile */}
       <div className="flex items-center gap-2 pr-4 border-r border-white/10 h-6">
         <div className="w-6 h-6 rounded-md bg-[#2dcc70] flex items-center justify-center shadow-lg">
@@ -32,6 +31,7 @@ const Header = () => {
           </svg>
         </button>
       </div>
+
 
       {/* Nav Tools */}
       <div className="flex items-center gap-1 mx-2" style={{ WebkitAppRegion: 'no-drag' }}>
