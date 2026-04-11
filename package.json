@@ -4,8 +4,9 @@
   "description": "Desktop Interview Assistant Foundation",
   "main": "electron/main.js",
   "scripts": {
-    "client:dev": "npm run dev --prefix client",
-    "electron:dev": "concurrently \"npm run client:dev\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
+    "server:dev": "npm start --prefix server",
+    "client:dev": "npm run dev --prefix client -- --port 5173 --strictPort",
+    "electron:dev": "concurrently \"npm run server:dev\" \"npm run client:dev\" \"wait-on tcp:5000 && wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
     "start": "npm run electron:dev"
   },
   "devDependencies": {

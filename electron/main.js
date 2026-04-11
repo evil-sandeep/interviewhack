@@ -5,14 +5,16 @@ let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 400,
-    height: 600,
+    width: 550,
+    height: 700,
     alwaysOnTop: true,
+    skipTaskbar: false,
     frame: false,
     transparent: true,
     resizable: true,
     movable: true,
     webPreferences: {
+
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
