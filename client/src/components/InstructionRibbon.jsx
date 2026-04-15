@@ -1,8 +1,8 @@
 import React from 'react';
 import { useAppContext } from '../context/AppContext';
 
-const InstructionRibbon = () => {
-  const { clearChat, isTyping } = useAppContext();
+const InstructionRibbon = ({ isTyping }) => {
+  const { clearChat } = useAppContext();
 
   const handleClear = async () => {
     if (window.confirm('Clear all interview history?')) {

@@ -1,5 +1,5 @@
 import express from 'express';
-import { processChatMessage, getHistory, clearHistory } from '../controllers/chatController.js';
+import { processChatMessage, processAudioMessage, getHistory, clearHistory } from '../controllers/chatController.js';
 import { protect } from '../middleware/authMiddleware.js'; // Import Security Layer
 
 const router = express.Router();
@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(protect);
 
 router.post('/message', processChatMessage);
+router.post('/audio', processAudioMessage);
 router.get('/history', getHistory);
 router.delete('/clear', clearHistory);
 

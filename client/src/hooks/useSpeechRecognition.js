@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState(null);
   
   const recognitionRef = useRef(null);
@@ -50,11 +51,17 @@ const useSpeechRecognition = () => {
     };
 
     recognition.onresult = (event) => {
-      let currentTranscript = '';
+      let finalTrans = '';
+      let interimTrans = '';
       for (let i = 0; i < event.results.length; ++i) {
-        currentTranscript += event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTrans += event.results[i][0].transcript;
+        } else {
+          interimTrans += event.results[i][0].transcript;
+        }
       }
-      setTranscript(currentTranscript);
+      setTranscript(finalTrans);
+      setInterimTranscript(interimTrans);
     };
 
     recognitionRef.current = recognition;
@@ -71,6 +78,7 @@ const useSpeechRecognition = () => {
     if (recognitionRef.current) {
       shouldBeListening.current = true;
       setTranscript('');
+      setInterimTranscript('');
       
       // Small delay to ensure Electron permission handshake is stable
       setTimeout(() => {
@@ -93,13 +101,27 @@ const useSpeechRecognition = () => {
     }
     setIsListening(false);
   }, []);
+  
+  const resetTranscript = useCallback(() => {
+    setTranscript('');
+    if (recognitionRef.current) {
+      // Browsers often buffer results, so we stop and restart if needed to clear internal state
+      const wasListening = shouldBeListening.current;
+      if (wasListening) stopListening();
+      setTranscript('');
+      setInterimTranscript('');
+      if (wasListening) startListening();
+    }
+  }, [stopListening, startListening]);
 
 
   return {
     isListening,
     transcript,
+    interimTranscript,
     startListening,
     stopListening,
+    resetTranscript,
     hasBrowserSupport: !!recognitionRef.current,
     error
   };

@@ -1,34 +1,29 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import HeaderComp from './components/Header';
 import RibbonComp from './components/InstructionRibbon';
 import MessagesComp from './components/MessageList';
-import useSpeechRecognition from './hooks/useSpeechRecognition';
 import { sendChatMessage } from './services/api';
 import { useAppContext } from './context/AppContext';
+import useSpeechRecognition from './hooks/useSpeechRecognition';
+import LiveTranscript from './components/LiveTranscript';
 
 function App() {
   const { messages, setMessages, setIsTyping, isTyping } = useAppContext();
-  const { transcript, isListening, stopListening, startListening, error: speechError } = useSpeechRecognition();
   const [inputValue, setInputValue] = useState('');
-  const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
 
+  const { isListening, startListening, stopListening, transcript, interimTranscript, resetTranscript } = useSpeechRecognition();
 
-  // LIVE SYNC: Map transcript to input value while recording
-  useEffect(() => {
-    if (isListening && transcript) {
+  // Sync Live Transcript with Input Value
+  React.useEffect(() => {
+    if (transcript) {
       setInputValue(transcript);
     }
-  }, [transcript, isListening]);
+  }, [transcript]);
 
-  // Function to handle sending messages
+  // Function to handle manual text sending
   const handleSendMessage = useCallback(async (text) => {
     if (!text.trim()) return;
 
-    // Optional: Stop listening while processing to avoid hearing AI response
-    const wasListening = isListening;
-    if (wasListening) stopListening();
-
-    // Add user message locally
     const userMsg = { sender: 'user', text: text.trim(), createdAt: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
@@ -41,50 +36,30 @@ function App() {
       }
     } catch (err) {
       console.error("Chat Error:", err);
-      // Let the user know the server is likely down
       alert(`Connection Error: ${err.message}. Please ensure the server is running.`);
     } finally {
       setIsTyping(false);
-      // Optional: Resume listening after response if it was active
-      if (wasListening) startListening();
-      setInputValue(''); // Always clear input after send
-      setLastProcessedTranscript(''); // Reset processed track
+      setInputValue('');
+      resetTranscript();
     }
-  }, [setMessages, setIsTyping, isListening, stopListening, startListening]);
-
-  // AUTO-SEND EFFECT: Watch the input value during listening
-  useEffect(() => {
-    if (!isListening || !inputValue || isTyping) return;
-    
-    const text = inputValue.trim();
-    if (text === lastProcessedTranscript) return;
-
-    // Detection logic: Look for question words and substantial length
-    const questionWords = ['what', 'who', 'where', 'when', 'why', 'how', 'can', 'could', 'should', 'would', 'is', 'are', 'do', 'does', 'tell me', 'explain', 'can you'];
-    const lowerText = text.toLowerCase();
-    const isQuestion = lowerText.endsWith('?') || questionWords.some(word => lowerText.startsWith(word));
-
-    // Wait for a clear pause after a substantial question is in the input
-    if (isQuestion && text.length > 10) {
-       const timeoutId = setTimeout(() => {
-          handleSendMessage(text);
-          setLastProcessedTranscript(text);
-       }, 1700); // Natural silence pause
-       return () => clearTimeout(timeoutId);
-    }
-  }, [inputValue, isListening, handleSendMessage, lastProcessedTranscript, isTyping]);
-
-
+  }, [setMessages, setIsTyping]);
 
   const onManualSend = (e) => {
     e.preventDefault();
     handleSendMessage(inputValue);
-    setInputValue('');
   };
 
   const handleMicToggle = () => {
-    if (isListening) stopListening();
-    else startListening();
+    if (isListening) {
+      stopListening();
+      if (inputValue.trim()) {
+        handleSendMessage(inputValue);
+      }
+    } else {
+      setInputValue('');
+      resetTranscript();
+      startListening();
+    }
   };
 
   return (
@@ -94,10 +69,10 @@ function App() {
     >
       
       {/* Primary Navigation Header */}
-      <HeaderComp />
+      <HeaderComp isRecording={isListening} onToggle={handleMicToggle} />
 
       {/* Instructional Ribbon */}
-      <RibbonComp />
+      <RibbonComp isTyping={isTyping} />
 
       {/* Main Message Feed */}
       <main 
@@ -106,27 +81,12 @@ function App() {
       >
         <MessagesComp />
 
-        {/* Speech Error Notice */}
-        {speechError && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-amber-500/20 border border-amber-500/40 rounded-lg backdrop-blur-md animate-bounce">
-             <p className="text-[10px] font-bold text-amber-200 uppercase tracking-tighter">
-                Mic Issue: {speechError === 'not-allowed' ? 'Permission Denied' : speechError}
-             </p>
-          </div>
-        )}
-        
-        {/* Real-time transcript preview */}
-
-        {isListening && transcript && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-red-500/10 backdrop-blur-2xl border border-red-500/20 rounded-2xl max-w-[85%] animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300 shadow-[0_0_20px_rgba(239,68,68,0.1)] pointer-events-none">
-             <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
-                <p className="text-[12px] font-semibold text-red-200 italic truncate italic">
-                  "{transcript}"
-                </p>
-             </div>
-          </div>
-        )}
+        {/* Live Speech-to-Text Overlay */}
+        <LiveTranscript 
+          isListening={isListening} 
+          transcript={transcript} 
+          interimTranscript={interimTranscript} 
+        />
       </main>
 
       {/* Functional Footer */}
@@ -135,7 +95,6 @@ function App() {
         style={{ WebkitAppRegion: 'no-drag' }}
       >
         <div className="flex items-center gap-3">
-          {/* Main Action Mic Button */}
           <button 
             onClick={handleMicToggle}
             className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg ${isListening ? 'bg-red-500 text-white animate-pulse shadow-red-500/20' : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white border border-white/5'}`}
@@ -168,8 +127,4 @@ function App() {
   );
 }
 
-
-
 export default App;
-
-

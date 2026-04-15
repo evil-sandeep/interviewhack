@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import MicButton from './MicButton';
 import useSpeechRecognition from '../../hooks/useSpeechRecognition';
 import useTextToSpeech from '../../hooks/useTextToSpeech';
@@ -8,6 +8,8 @@ import { sendChatMessage } from '../../services/api';
 const ChatInput = () => {
   const [text, setText] = useState("");
   const [baseText, setBaseText] = useState("");
+  const [isHandsFree, setIsHandsFree] = useState(false);
+  const silenceTimerRef = useRef(null);
 
   const { messages, setMessages, setIsTyping, isTyping, isVoiceEnabled, ttsSpeed } = useAppContext();
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
@@ -17,6 +19,7 @@ const ChatInput = () => {
     transcript,
     startListening,
     stopListening,
+    resetTranscript,
     hasBrowserSupport,
     error
   } = useSpeechRecognition();
@@ -25,10 +28,12 @@ const ChatInput = () => {
 
   const toggleRecording = () => {
     if (isListening) {
+      setIsHandsFree(false);
       stopListening();
     } else {
       stopSpeaking(); 
       setBaseText(text); 
+      setIsHandsFree(true);
       startListening();
     }
   };
@@ -45,6 +50,38 @@ const ChatInput = () => {
     }
   }, [isListening, text]);
 
+  // AUTOPILOT: Auto-submit on silence detection
+  useEffect(() => {
+    if (isListening && transcript.trim() !== "") {
+      // Clear existing timer
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
+      // Start new timer for 1.8 seconds (balance between speed and patience)
+      silenceTimerRef.current = setTimeout(() => {
+        console.log("[Autopilot] Silence detected, auto-submitting...");
+        handleSend();
+      }, 1800);
+    }
+
+    return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    };
+  }, [transcript, isListening]);
+
+  // AUTOPILOT: Auto-restart listening after AI finishes speaking
+  useEffect(() => {
+    if (!isSpeaking && !isTyping && isHandsFree && !isListening) {
+      console.log("[Autopilot] AI finished speaking, restarting listening...");
+      // Small delay to ensure any echo has cleared
+      const restartTimeout = setTimeout(() => {
+        if (isHandsFree && !isListening) {
+          startListening();
+        }
+      }, 500);
+      return () => clearTimeout(restartTimeout);
+    }
+  }, [isSpeaking, isTyping, isListening, isHandsFree]);
+
   const handleTextChange = (e) => {
     setText(e.target.value);
     if (!isListening) {
@@ -57,6 +94,7 @@ const ChatInput = () => {
     if (!userMessage || isTyping) return;
 
     if (isListening) stopListening();
+    resetTranscript();
     stopSpeaking();
 
     setText("");
@@ -92,7 +130,20 @@ const ChatInput = () => {
     <div className="w-full relative transition-all">
       
       {/* Speaking Indicator inline instead of overlapping outside the box violently */}
-      {isSpeaking && !isTyping && (
+      {isHandsFree && (
+        <div className="w-full flex justify-center mb-3">
+           <div className={`flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] px-3 py-1 rounded border transition-all ${
+             isTyping || isSpeaking 
+               ? 'text-zinc-500 bg-zinc-900/40 border-zinc-800' 
+               : 'text-red-400 bg-red-900/10 border-red-500/20 animate-pulse'
+           }`}>
+             <div className={`w-1.5 h-1.5 rounded-full ${isListening ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'bg-zinc-600'}`}></div>
+             {isTyping ? "AI THINKING..." : isSpeaking ? "AI RESPONDING..." : "HANDS-FREE ACTIVE / LISTENING"}
+           </div>
+        </div>
+      )}
+
+      {isSpeaking && !isHandsFree && !isTyping && (
         <div className="w-full flex justify-center mb-3">
            <div className="flex items-center gap-2 text-[11px] font-mono tracking-widest text-emerald-400 bg-emerald-900/20 px-3 py-1 rounded border border-emerald-500/20 transition-colors">
              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>

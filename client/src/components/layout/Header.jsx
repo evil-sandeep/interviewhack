@@ -48,11 +48,38 @@ const Header = () => {
         <span className="text-sm font-medium">Chat</span>
       </button>
 
-      <div className="flex items-center gap-2 pl-4 border-l border-[#2e3035]">
+      <div className="flex items-center gap-2 pl-4 border-l border-[#2e3035] pr-1">
         <div className="px-2 py-1 bg-[#2e3035] rounded shadow-sm text-sm font-mono text-zinc-200 flex items-center gap-2 tracking-wider">
            <div className="w-2.5 h-2.5 bg-white rounded-sm animate-pulse"></div>
            {formatTime(timer)}
         </div>
+      </div>
+
+      {/* Apple-style Window Controls */}
+      <div className="flex items-center gap-2 ml-auto pr-2" style={{ WebkitAppRegion: 'no-drag' }}>
+        <button 
+          onClick={() => window.electronAPI?.minimize()}
+          className="w-3 h-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffbd2e]/80 transition-all flex items-center justify-center group shadow-inner"
+          title="Minimize"
+        >
+          <div className="w-1.5 h-[1.5px] bg-black/30 opacity-0 group-hover:opacity-100"></div>
+        </button>
+        <button 
+          onClick={() => window.electronAPI?.maximize()}
+          className="w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 transition-all flex items-center justify-center group shadow-inner"
+          title="Maximize"
+        >
+          <div className="w-1.5 h-1.5 border-[1.5px] border-black/30 opacity-0 group-hover:opacity-100"></div>
+        </button>
+        <button 
+          onClick={() => window.electronAPI?.close()}
+          className="w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 transition-all flex items-center justify-center group shadow-inner"
+          title="Close"
+        >
+          <svg className="w-2 h-2 text-black/40 opacity-0 group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
     </div>
